@@ -1,43 +1,22 @@
-import { useEffect, useState } from 'react'
-import { supabase } from './supabase'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import Login from './pages/Login'
+import Signup from './pages/Signup'
+import Home from './pages/Home'
+import Predicciones from './pages/Predicciones'
+import TablaGeneral from './pages/TablaGeneral'
+import PrediccionesEspeciales from './pages/PrediccionesEspeciales'
 
 function App() {
-  const [partidos, setPartidos] = useState([])
-  const [errorMsg, setErrorMsg] = useState('')
-
-  useEffect(() => {
-    async function cargarPartidos() {
-      const { data, error } = await supabase
-        .from('partidos')
-        .select('*')
-
-      if (error) {
-        console.error(error)
-        setErrorMsg(error.message)
-      } else {
-        setPartidos(data)
-      }
-    }
-
-    cargarPartidos()
-  }, [])
-
   return (
-    <div>
-      <h1>🏆 Quiniela Mundial 2026</h1>
-
-      {errorMsg && <p>Error: {errorMsg}</p>}
-
-      {partidos.length === 0 && !errorMsg && (
-        <p>No se encontraron partidos.</p>
-      )}
-
-      {partidos.map((partido) => (
-        <p key={partido.id}>
-          {partido.equipo1} vs {partido.equipo2}
-        </p>
-      ))}
-    </div>
+    <Routes>
+      <Route path="/" element={<Navigate to="/login" />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/home" element={<Home />} />
+      <Route path="/predicciones" element={<Predicciones />} />
+      <Route path="/tabla" element={<TablaGeneral />} />
+      <Route path="/predicciones-especiales" element={<PrediccionesEspeciales />} />
+    </Routes>
   )
 }
 
