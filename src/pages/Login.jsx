@@ -59,8 +59,14 @@ export default function Login() {
         </button>
 
         <p style={styles.link}>
-          ¿No tienes cuenta?{' '}
-          <Link to="/signup">Regístrate aquí</Link>
+          {new Date() <new Date('2026-06-12 08:00:00')?(
+            <>
+              ¿No tienes cuenta?{' '}
+              <Link to="/signup">Regístrate aquí</Link>
+            </>
+          ) : (
+            <span style={{ color: '#888'}}>⛔ El registro ya está cerrado</span>
+          )}  
         </p>
       </div>
     </div>
