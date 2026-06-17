@@ -24,7 +24,7 @@
     'Final',
     'Campeón 🏆'
   ]
-  const FECHA_CIERRE_ESPECIALES = new Date('2026-06-17T12:00:00')
+  const FECHA_CIERRE_ESPECIALES = new Date('2026-06-18T12:00:00')
 
   const TIPOS = [
     { tipo: 'campeon', descripcion: '🏆 Campeón del torneo', puntos: 5, input: 'lista_equipos' },
@@ -114,7 +114,7 @@
         </div>
 
         <p style={styles.subtitle}>
-          Estas predicciones CIERRAN EL 17 DE JUNIO y se resuelven al final del torneo. ¡Elige bien!
+          Estas predicciones CIERRAN EL 18 DE JUNIO a las 12 PM y se resuelven al final del torneo. ¡Elige bien!
         </p>
 
         {TIPOS.map(({ tipo, descripcion, puntos, input }) => {
