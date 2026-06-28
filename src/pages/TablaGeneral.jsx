@@ -2,6 +2,25 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 import { useNavigate } from 'react-router-dom'
 
+const BANDERAS = {
+  'Alemania': '🇩🇪', 'Arabia Saudita': '🇸🇦', 'Argelia': '🇩🇿',
+  'Argentina': '🇦🇷', 'Australia': '🇦🇺', 'Austria': '🇦🇹',
+  'Bélgica': '🇧🇪', 'Brasil': '🇧🇷', 'Cabo Verde': '🇨🇻',
+  'Camerún': '🇨🇲', 'Canadá': '🇨🇦', 'Chile': '🇨🇱',
+  'Colombia': '🇨🇴', 'Corea del Sur': '🇰🇷', 'Costa de Marfil': '🇨🇮',
+  'Croacia': '🇭🇷', 'Curazao': '🇨🇼', 'Dinamarca': '🇩🇰',
+  'Ecuador': '🇪🇨', 'Egipto': '🇪🇬', 'España': '🇪🇸',
+  'Estados Unidos': '🇺🇸', 'Francia': '🇫🇷', 'Ghana': '🇬🇭',
+  'Haití': '🇭🇹', 'Inglaterra': '🏴', 'Irak': '🇮🇶',
+  'Irán': '🇮🇷', 'Japón': '🇯🇵', 'Jordania': '🇯🇴',
+  'Marruecos': '🇲🇦', 'México': '🇲🇽', 'Noruega': '🇳🇴',
+  'Nueva Zelanda': '🇳🇿', 'Países Bajos': '🇳🇱', 'Panamá': '🇵🇦',
+  'Paraguay': '🇵🇾', 'Perú': '🇵🇪', 'Polonia': '🇵🇱',
+  'Portugal': '🇵🇹', 'Qatar': '🇶🇦', 'Senegal': '🇸🇳',
+  'Serbia': '🇷🇸', 'Sudáfrica': '🇿🇦', 'Suiza': '🇨🇭',
+  'Túnez': '🇹🇳', 'Uruguay': '🇺🇾', 'Uzbekistán': '🇺🇿'
+}
+
 export default function TablaGeneral() {
   const [participantes, setParticipantes] = useState([])
   const [loading, setLoading] = useState(true)
@@ -10,7 +29,6 @@ export default function TablaGeneral() {
   useEffect(() => {
     cargarTabla()
 
-    // Actualización en tiempo real
     const canal = supabase
       .channel('tabla-general')
       .on('postgres_changes', {
@@ -26,7 +44,7 @@ export default function TablaGeneral() {
   const cargarTabla = async () => {
     const { data } = await supabase
       .from('participantes')
-      .select('nombre, puntos_total, equipo_abreviacion')
+      .select('nombre, puntos_total, equipo_favorito')
       .order('puntos_total', { ascending: false })
 
     setParticipantes(data || [])
@@ -60,7 +78,9 @@ export default function TablaGeneral() {
             <div style={styles.podioItem}>
               <div style={styles.medallaSilver}>🥈</div>
               <div style={styles.podioCard}>
-                <span style={styles.podioAbrev}>{podio[1].equipo_abreviacion || '🌍'}</span>
+                <span style={styles.podioAbrev}>
+                  {BANDERAS[podio[1].equipo_favorito] || '🌍'}
+                </span>
                 <span style={styles.podioNombre}>{podio[1].nombre}</span>
                 <span style={styles.podioPuntos}>{podio[1].puntos_total} pts</span>
               </div>
@@ -75,7 +95,9 @@ export default function TablaGeneral() {
             <div style={styles.podioItem}>
               <div style={styles.medallaGold}>👑</div>
               <div style={{ ...styles.podioCard, borderColor: '#FFD700' }}>
-                <span style={styles.podioAbrev}>{podio[0].equipo_abreviacion || '🌍'}</span>
+                <span style={styles.podioAbrev}>
+                  {BANDERAS[podio[0].equipo_favorito] || '🌍'}
+                </span>
                 <span style={styles.podioNombre}>{podio[0].nombre}</span>
                 <span style={styles.podioPuntos}>{podio[0].puntos_total} pts</span>
               </div>
@@ -90,7 +112,9 @@ export default function TablaGeneral() {
             <div style={styles.podioItem}>
               <div style={styles.medallabronce}>🥉</div>
               <div style={styles.podioCard}>
-                <span style={styles.podioAbrev}>{podio[2].equipo_abreviacion || '🌍'}</span>
+                <span style={styles.podioAbrev}>
+                  {BANDERAS[podio[2].equipo_favorito] || '🌍'}
+                </span>
                 <span style={styles.podioNombre}>{podio[2].nombre}</span>
                 <span style={styles.podioPuntos}>{podio[2].puntos_total} pts</span>
               </div>
@@ -109,7 +133,9 @@ export default function TablaGeneral() {
           {resto.map((p, index) => (
             <div key={p.nombre} style={styles.filaLista}>
               <span style={styles.posicion}>{index + 4}</span>
-              <span style={styles.abrev}>{p.equipo_abreviacion || '🌍'}</span>
+              <span style={styles.abrev}>
+                {BANDERAS[p.equipo_favorito] || '🌍'}
+              </span>
               <span style={styles.nombreLista}>{p.nombre}</span>
               <span style={styles.puntosLista}>{p.puntos_total} pts</span>
             </div>
@@ -180,9 +206,7 @@ const styles = {
     width: '100px',
   },
   podioAbrev: {
-    color: '#FFD700',
-    fontWeight: 'bold',
-    fontSize: '14px',
+    fontSize: '28px',
   },
   podioNombre: {
     color: 'white',
@@ -224,9 +248,7 @@ const styles = {
     width: '24px',
   },
   abrev: {
-    color: '#FFD700',
-    fontWeight: 'bold',
-    fontSize: '14px',
+    fontSize: '22px',
     width: '40px',
   },
   nombreLista: {
