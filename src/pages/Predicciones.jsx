@@ -4,6 +4,15 @@ import { useNavigate } from 'react-router-dom'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
+const FASES = [
+  'Grupos',
+  'Dieciseisavos',
+  'Octavos',
+  'Cuartos',
+  'Semifinal',
+  'Final'
+]
+
 export default function Predicciones() {
   const [partidos, setPartidos] = useState([])
   const [predicciones, setPredicciones] = useState({})
@@ -11,6 +20,7 @@ export default function Predicciones() {
   const [guardando, setGuardando] = useState(null)
   const [participanteId, setParticipanteId] = useState(null)
   const [participantes, setParticipantes] = useState([])
+  const [faseActiva, setFaseActiva] = useState('Grupos')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -26,14 +36,6 @@ export default function Predicciones() {
 
       if (!participante) return
       setParticipanteId(participante.id)
-
-      const { data: partidos } = await supabase
-        .from('partidos')
-        .select('*')
-        .eq('fase', 'Grupos')
-        .order('fecha', { ascending: true })
-
-      setPartidos(partidos || [])
 
       const { data: preds } = await supabase
         .from('predicciones')
@@ -60,6 +62,20 @@ export default function Predicciones() {
 
     init()
   }, [])
+
+  useEffect(() => {
+    const cargarPartidos = async () => {
+      const { data } = await supabase
+        .from('partidos')
+        .select('*')
+        .eq('fase', faseActiva)
+        .order('fecha', { ascending: true })
+
+      setPartidos(data || [])
+    }
+
+    cargarPartidos()
+  }, [faseActiva])
 
   const handlePrediccion = async (partidoId, resultado) => {
     setGuardando(partidoId)
@@ -186,134 +202,164 @@ export default function Predicciones() {
         <h1 style={styles.title}>⚽ Mis Predicciones</h1>
       </div>
 
-      {Object.entries(partidosPorFecha).map(([fecha, partidos]) => (
-        <div key={fecha} style={styles.fechaGroup}>
-          <h2 style={styles.fechaTitle}>{fecha}</h2>
+      {/* Pestañas de fases */}
+      <div style={styles.tabsContainer}>
+        {FASES.map(fase => (
+          <button
+            key={fase}
+            style={{
+              ...styles.tab,
+              ...(faseActiva === fase ? styles.tabActivo : {})
+            }}
+            onClick={() => setFaseActiva(fase)}
+          >
+            {fase}
+          </button>
+        ))}
+      </div>
 
-          {partidos.map(partido => {
-            const abierto = estaAbierto(partido.fecha)
-            const prediccionData = predicciones[partido.id]
-            const prediccion = prediccionData?.resultado_predicho
-            const puntosObtenidos = prediccionData?.puntos_obtenidos ?? 0
-            const partidoConResultado =
-              partido.resultado_equipo1 !== null &&
-              partido.resultado_equipo2 !== null
-            const marcadorFinal = `${partido.equipo1} ${partido.resultado_equipo1} - ${partido.resultado_equipo2} ${partido.equipo2}`
-            const hora = new Date(partido.fecha).toLocaleTimeString('es-MX', {
-              hour: '2-digit', minute: '2-digit'
-            })
+      {/* Partidos */}
+      {Object.keys(partidosPorFecha).length === 0 ? (
+        <p style={styles.sinPartidos}>Aún no hay partidos disponibles en esta fase.</p>
+      ) : (
+        Object.entries(partidosPorFecha).map(([fecha, partidos]) => (
+          <div key={fecha} style={styles.fechaGroup}>
+            <h2 style={styles.fechaTitle}>{fecha}</h2>
 
-            return (
-              <div key={partido.id} style={styles.partidoCard}>
+            {partidos.map(partido => {
+              const abierto = estaAbierto(partido.fecha)
+              const prediccionData = predicciones[partido.id]
+              const prediccion = prediccionData?.resultado_predicho
+              const puntosObtenidos = prediccionData?.puntos_obtenidos ?? 0
+              const partidoConResultado =
+                partido.resultado_equipo1 !== null &&
+                partido.resultado_equipo2 !== null
+              const marcadorFinal = `${partido.equipo1} ${partido.resultado_equipo1} - ${partido.resultado_equipo2} ${partido.equipo2}`
+              const hora = new Date(partido.fecha).toLocaleTimeString('es-MX', {
+                hour: '2-digit', minute: '2-digit'
+              })
 
-                <div style={styles.estadoRow}>
-                  {!prediccion && abierto && (
-                    <span style={styles.pendiente}>⚠️ Pendiente por predecir</span>
-                  )}
-                  {prediccion && (
-                    <span style={styles.predichoLabel}>✅ Predicción guardada</span>
-                  )}
-                  {!abierto && !prediccion && (
-                    <span style={styles.cerrado}>🔒 Cerrado sin predicción</span>
-                  )}
-                </div>
+              return (
+                <div key={partido.id} style={styles.partidoCard}>
 
-                <div style={styles.equiposRow}>
-                  <span style={styles.equipo}>{partido.equipo1}</span>
-                  <div style={styles.centro}>
-                    <span style={styles.vs}>VS</span>
-                    <span style={styles.hora}>{hora} hrs</span>
-                    {partido.es_triple && (
-                      <span style={styles.triple}>🔥 TRIPLE</span>
+                  <div style={styles.estadoRow}>
+                    {!prediccion && abierto && (
+                      <span style={styles.pendiente}>⚠️ Pendiente por predecir</span>
+                    )}
+                    {prediccion && (
+                      <span style={styles.predichoLabel}>✅ Predicción guardada</span>
+                    )}
+                    {!abierto && !prediccion && (
+                      <span style={styles.cerrado}>🔒 Cerrado sin predicción</span>
                     )}
                   </div>
-                  <span style={styles.equipo}>{partido.equipo2}</span>
+
+                  <div style={styles.equiposRow}>
+                    <span style={styles.equipo}>{partido.equipo1}</span>
+                    <div style={styles.centro}>
+                      <span style={styles.vs}>VS</span>
+                      <span style={styles.hora}>{hora} hrs</span>
+                      {partido.es_triple && (
+                        <span style={styles.triple}>🔥 TRIPLE</span>
+                      )}
+                      {partido.es_doble && (
+                        <span style={styles.triple}>⚡ DOBLE</span>
+                      )}
+                    </div>
+                    <span style={styles.equipo}>{partido.equipo2}</span>
+                  </div>
+
+                  {/* Botones abiertos */}
+                  {abierto ? (
+                    <div style={styles.botonesRow}>
+                      <button
+                        style={{
+                          ...styles.btnPrediccion,
+                          ...(prediccion === 'equipo1' ? styles.btnSeleccionado : {})
+                        }}
+                        onClick={() => handlePrediccion(partido.id, 'equipo1')}
+                        disabled={guardando === partido.id}
+                      >
+                        Gana {partido.equipo1}
+                      </button>
+                      {faseActiva === 'Grupos' && (
+                        <button
+                          style={{
+                            ...styles.btnPrediccion,
+                            ...(prediccion === 'empate' ? styles.btnSeleccionado : {})
+                          }}
+                          onClick={() => handlePrediccion(partido.id, 'empate')}
+                          disabled={guardando === partido.id}
+                        >
+                          Empate
+                        </button>
+                      )}
+                      <button
+                        style={{
+                          ...styles.btnPrediccion,
+                          ...(prediccion === 'equipo2' ? styles.btnSeleccionado : {})
+                        }}
+                        onClick={() => handlePrediccion(partido.id, 'equipo2')}
+                        disabled={guardando === partido.id}
+                      >
+                        Gana {partido.equipo2}
+                      </button>
+                    </div>
+
+                  ) : (
+                    /* Botones cerrados */
+                    <div style={styles.botonesRow}>
+                      <div style={{
+                        ...styles.btnPrediccion,
+                        ...(prediccion === 'equipo1' ? styles.btnCerradoSeleccionado : styles.btnCerrado)
+                      }}>
+                        Gana {partido.equipo1}
+                      </div>
+                      {faseActiva === 'Grupos' && (
+                        <div style={{
+                          ...styles.btnPrediccion,
+                          ...(prediccion === 'empate' ? styles.btnCerradoSeleccionado : styles.btnCerrado)
+                        }}>
+                          Empate
+                        </div>
+                      )}
+                      <div style={{
+                        ...styles.btnPrediccion,
+                        ...(prediccion === 'equipo2' ? styles.btnCerradoSeleccionado : styles.btnCerrado)
+                      }}>
+                        Gana {partido.equipo2}
+                      </div>
+                    </div>
+                  )}
+
+                  {!abierto && (
+                    <button
+                      style={styles.btnPDF}
+                      onClick={() => descargarPDF(partido)}
+                    >
+                      📄 Descargar predicciones
+                    </button>
+                  )}
+
+                  {prediccion && partidoConResultado && (
+                    <div style={styles.resultadoBox}>
+                      <p style={styles.resultaodFinal}>
+                        Resultado final: {marcadorFinal}
+                      </p>
+                      <p style={puntosObtenidos > 0 ? styles.puntosGanados : styles.puntosCero}>
+                        {puntosObtenidos > 0
+                          ? `🏆 Obtuviste ${puntosObtenidos} pts`
+                          : '😔 Obtuviste 0 pts'}
+                      </p>
+                    </div>
+                  )}
+
                 </div>
-
-                {abierto ? (
-                  <div style={styles.botonesRow}>
-                    <button
-                      style={{
-                        ...styles.btnPrediccion,
-                        ...(prediccion === 'equipo1' ? styles.btnSeleccionado : {})
-                      }}
-                      onClick={() => handlePrediccion(partido.id, 'equipo1')}
-                      disabled={guardando === partido.id}
-                    >
-                      Gana {partido.equipo1}
-                    </button>
-                    <button
-                      style={{
-                        ...styles.btnPrediccion,
-                        ...(prediccion === 'empate' ? styles.btnSeleccionado : {})
-                      }}
-                      onClick={() => handlePrediccion(partido.id, 'empate')}
-                      disabled={guardando === partido.id}
-                    >
-                      Empate
-                    </button>
-                    <button
-                      style={{
-                        ...styles.btnPrediccion,
-                        ...(prediccion === 'equipo2' ? styles.btnSeleccionado : {})
-                      }}
-                      onClick={() => handlePrediccion(partido.id, 'equipo2')}
-                      disabled={guardando === partido.id}
-                    >
-                      Gana {partido.equipo2}
-                    </button>
-                  </div>
-                ) : (
-                  <div style={styles.botonesRow}>
-                    <div style={{
-                      ...styles.btnPrediccion,
-                      ...(prediccion === 'equipo1' ? styles.btnCerradoSeleccionado : styles.btnCerrado)
-                    }}>
-                      Gana {partido.equipo1}
-                    </div>
-                    <div style={{
-                      ...styles.btnPrediccion,
-                      ...(prediccion === 'empate' ? styles.btnCerradoSeleccionado : styles.btnCerrado)
-                    }}>
-                      Empate
-                    </div>
-                    <div style={{
-                      ...styles.btnPrediccion,
-                      ...(prediccion === 'equipo2' ? styles.btnCerradoSeleccionado : styles.btnCerrado)
-                    }}>
-                      Gana {partido.equipo2}
-                    </div>
-                  </div>
-                )}
-
-                {/* Botón PDF - solo aparece cuando el partido ya cerró */}
-                {!abierto && (
-                  <button
-                    style={styles.btnPDF}
-                    onClick={() => descargarPDF(partido)}
-                  >
-                    📄 Descargar predicciones
-                  </button>
-                )}
-
-                {prediccion && partidoConResultado && (
-                  <div style={styles.resultadoBox}>
-                    <p style={styles.resultaodFinal}>
-                      Resultado final: {marcadorFinal}
-                    </p>
-                    <p style={puntosObtenidos > 0 ? styles.puntosGanados : styles.puntosCero}>
-                      {puntosObtenidos > 0
-                        ? `🏆 Obtuviste ${puntosObtenidos} pts`
-                        : '😔 Obtuviste 0 pts'}
-                    </p>
-                  </div>
-                )}
-
-              </div>
-            )
-          })}
-        </div>
-      ))}
+              )
+            })}
+          </div>
+        ))
+      )}
     </div>
   )
 }
@@ -329,7 +375,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '20px',
-    marginBottom: '30px',
+    marginBottom: '20px',
   },
   backButton: {
     backgroundColor: 'transparent',
@@ -344,6 +390,33 @@ const styles = {
     color: '#FFD700',
     fontSize: '24px',
     margin: 0,
+  },
+  tabsContainer: {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '24px',
+    flexWrap: 'wrap',
+  },
+  tab: {
+    padding: '8px 14px',
+    borderRadius: '20px',
+    border: '2px solid #444',
+    backgroundColor: 'transparent',
+    color: '#aaa',
+    fontSize: '13px',
+    cursor: 'pointer',
+  },
+  tabActivo: {
+    backgroundColor: '#FFD700',
+    borderColor: '#FFD700',
+    color: '#0a0a2e',
+    fontWeight: 'bold',
+  },
+  sinPartidos: {
+    color: '#888',
+    textAlign: 'center',
+    marginTop: '40px',
+    fontSize: '14px',
   },
   fechaGroup: {
     marginBottom: '30px',
